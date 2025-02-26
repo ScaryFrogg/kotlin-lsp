@@ -1,0 +1,40 @@
+package rpc
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strconv"
+)
+
+func Encode(msg any) string {
+	content, err := json.Marshal(msg)
+	if err != nil {
+		//TODO handle with parsing error code
+		//{"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}, "id": null}
+		panic("asd")
+	}
+	return fmt.Sprintf("Content-Length: %d\r\n\r\n%s", len(content), content)
+}
+
+func Decode(msg []byte) (string, error) {
+	header, content, found := bytes.Cut(msg, []byte{'\r', '\n', '\r', '\n'})
+	if !found {
+		return "", errors.New("Did not find separator")
+	}
+	length, err := strconv.Atoi(string(header[16:]))
+	if err != nil {
+		return "", err
+	}
+	var baseMessage BaseMessage
+	if err := json.Unmarshal(content[:length], &baseMessage); err != nil {
+		return "", err
+	}
+
+	return baseMessage.Method, nil
+}
+
+type BaseMessage struct {
+	Method string `json:"method"`
+}
