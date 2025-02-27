@@ -38,3 +38,19 @@ func Decode(msg []byte) (string, error) {
 type BaseMessage struct {
 	Method string `json:"method"`
 }
+
+func Split(data []byte, _ bool) (advance int, token []byte, err error) {
+	header, content, found := bytes.Cut(data, []byte{'\r', '\n', '\r', '\n'})
+	if !found {
+		return 0, nil, nil
+	}
+	length, err := strconv.Atoi(string(header[16:]))
+	if err != nil {
+		return 0, nil, err
+	}
+	if len(content) < length {
+		return 0, nil, nil
+	}
+	totalLength := 20 + length // 16+ header + 4 for separator + content
+	return totalLength, data[:totalLength], nil
+}
