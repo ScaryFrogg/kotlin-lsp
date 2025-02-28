@@ -18,21 +18,21 @@ func Encode(msg any) string {
 	return fmt.Sprintf("Content-Length: %d\r\n\r\n%s", len(content), content)
 }
 
-func Decode(msg []byte) (string, error) {
+func Decode(msg []byte) (string, []byte, error) {
 	header, content, found := bytes.Cut(msg, []byte{'\r', '\n', '\r', '\n'})
 	if !found {
-		return "", errors.New("Did not find separator")
+		return "", nil, errors.New("Did not find separator")
 	}
 	length, err := strconv.Atoi(string(header[16:]))
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	var baseMessage BaseMessage
 	if err := json.Unmarshal(content[:length], &baseMessage); err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return baseMessage.Method, nil
+	return baseMessage.Method, content, nil
 }
 
 type BaseMessage struct {

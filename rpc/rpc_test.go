@@ -1,9 +1,8 @@
 package rpc_test
 
 import (
+	"github.com/ScaryFrogg/kotlin-lsp/rpc"
 	"testing"
-
-	"github.comgithub.com/ScaryFrogg/kotlin-lsp/rpc"
 )
 
 type TestStruct struct {

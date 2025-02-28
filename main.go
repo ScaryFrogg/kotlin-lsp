@@ -2,9 +2,13 @@ package main
 
 import (
 	"bufio"
-	"github.com/ScaryFrogg/kotlin-lsp/rpc"
+	"encoding/json"
+	"io"
 	"log"
 	"os"
+
+	"github.com/ScaryFrogg/kotlin-lsp/lsp"
+	"github.com/ScaryFrogg/kotlin-lsp/rpc"
 )
 
 func main() {
@@ -12,14 +16,35 @@ func main() {
 	logger.Println("Kotlin LSP started")
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Split(rpc.Split)
+
+	writer := os.Stdout
 	for scanner.Scan() {
-		msg := scanner.Text()
-		handleMessage(logger, msg)
+		msg := scanner.Bytes()
+		method, contents, err := rpc.Decode(msg)
+		if err != nil {
+			logger.Printf("error: %v", err)
+		}
+		handleMessage(logger, writer, method, contents)
 	}
 }
 
-func handleMessage(logger *log.Logger, msg any) {
-	logger.Println(msg)
+func handleMessage(logger *log.Logger, writer io.Writer, method string, contents []byte) {
+	logger.Printf("Handling [%s] -> %s:", method, contents)
+
+	switch method {
+	case "initialize":
+		var request lsp.InitializeRequest
+		if err := json.Unmarshal(contents, &request); err != nil {
+			logger.Printf("Hey, we couldn't parse this: %s", err)
+		}
+
+		logger.Printf("Connected to: %s %s",
+			request.Params.ClientInfo.Name,
+			request.Params.ClientInfo.Version)
+
+		msg := lsp.NewInitializeResponse(request.Id)
+		writeResponse(writer, msg)
+	}
 }
 
 func getLogger(filename string) *log.Logger {
@@ -27,4 +52,10 @@ func getLogger(filename string) *log.Logger {
 	if err != nil {
 	}
 	return log.New(logfile, "[kotlin-lsp]", log.Ldate|log.Ltime|log.Lshortfile)
+}
+
+func writeResponse(writer io.Writer, msg any) {
+	reply := rpc.Encode(msg)
+	writer.Write([]byte(reply))
+
 }
