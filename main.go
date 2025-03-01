@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -44,6 +45,26 @@ func handleMessage(logger *log.Logger, writer io.Writer, method string, contents
 
 		msg := lsp.NewInitializeResponse(request.Id)
 		writeResponse(writer, msg)
+	case "textDocument/hover":
+		var request lsp.HoverRequest
+		if err := json.Unmarshal(contents, &request); err != nil {
+			logger.Printf("textDocument/hover: %s", err)
+			return
+		}
+
+		//TODO get proper stuff
+		response := lsp.HoverResponse{
+			Response: lsp.Response{
+				RPC: "2.0",
+				Id:  request.Id,
+			},
+			Result: lsp.HoverResult{
+				Contents: fmt.Sprintf("File: %s ", request.Params.TextDocument.URI),
+			},
+		}
+
+		// Write it back
+		writeResponse(writer, response)
 	}
 }
 
